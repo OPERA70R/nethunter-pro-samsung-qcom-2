@@ -69,7 +69,15 @@ CANDIDATE_PRIORITY=""
 
 resolve_ramdisk_path() {
     version="$1"
-    for candidate in "/boot/initrd.img-${version}" "/boot/initramfs-${version}.img"; do
+    for candidate in \
+        "/boot/initrd.img-${version}" \
+        "/boot/initrd.img-${version}.gz" \
+        "/boot/initramfs-${version}.img" \
+        "/boot/initramfs-${version}.img.gz" \
+        "/lib/modules/${version}/initrd.img-${version}" \
+        "/lib/modules/${version}/initramfs-${version}.img" \
+        "/usr/lib/modules/${version}/initrd.img-${version}" \
+        "/usr/lib/modules/${version}/initramfs-${version}.img"; do
         if [ -f "${candidate}" ] && [ ! -L "${candidate}" ]; then
             printf '%s\n' "${candidate}"
             return 0
@@ -215,30 +223,31 @@ consider_kernel_candidate() {
     kernel_candidate="/boot/vmlinuz-${version}"
     packaged_kernel_candidate="/usr/lib/linux-image-${version}/vmlinuz"
     raw_kernel_candidate="/usr/lib/linux-image-${version}/Image"
+    modules_kernel_candidate="/lib/modules/${version}/vmlinuz"
+    modules_image_candidate="/lib/modules/${version}/Image"
+    usr_modules_kernel_candidate="/usr/lib/modules/${version}/vmlinuz"
+    usr_modules_image_candidate="/usr/lib/modules/${version}/Image"
     ramdisk_candidate="$(resolve_ramdisk_path "${version}" || true)"
     if [ ! -f "${ramdisk_candidate}" ]; then
         ensure_ramdisk_for_version "${version}" || true
         ramdisk_candidate="$(resolve_ramdisk_path "${version}" || true)"
     fi
 
-    if [ -f "${raw_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
-        KERNEL_IMAGE="${raw_kernel_candidate}"
-        KERNEL_VERSION="${version}"
-        RAMDISK_IMAGE="${ramdisk_candidate}"
-        return 0
-    fi
-    if [ -f "${packaged_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
-        KERNEL_IMAGE="${packaged_kernel_candidate}"
-        KERNEL_VERSION="${version}"
-        RAMDISK_IMAGE="${ramdisk_candidate}"
-        return 0
-    fi
-    if [ -f "${kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
-        KERNEL_IMAGE="${kernel_candidate}"
-        KERNEL_VERSION="${version}"
-        RAMDISK_IMAGE="${ramdisk_candidate}"
-        return 0
-    fi
+    for KERNEL_PATH in \
+        "${raw_kernel_candidate}" \
+        "${packaged_kernel_candidate}" \
+        "${kernel_candidate}" \
+        "${modules_kernel_candidate}" \
+        "${modules_image_candidate}" \
+        "${usr_modules_kernel_candidate}" \
+        "${usr_modules_image_candidate}"; do
+        if [ -f "${KERNEL_PATH}" ] && [ -f "${ramdisk_candidate}" ]; then
+            KERNEL_IMAGE="${KERNEL_PATH}"
+            KERNEL_VERSION="${version}"
+            RAMDISK_IMAGE="${ramdisk_candidate}"
+            return 0
+        fi
+    done
     return 1
 }
 
@@ -255,7 +264,7 @@ resolve_dtb_path() {
             return 0
         fi
     fi
-    
+
     for candidate in \
         "${REPO_ROOT}/${dtb_name}" \
         "${REPO_ROOT}/qcom/${dtb_name}" \
@@ -276,7 +285,7 @@ if [ -e /vmlinuz ]; then
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
     tab="$(printf '\t')"
-    for candidate in /boot/vmlinuz-* /usr/lib/linux-image-*/vmlinuz /usr/lib/linux-image-*/Image; do
+    for candidate in /boot/vmlinuz-* /usr/lib/linux-image-*/vmlinuz /usr/lib/linux-image-*/Image /lib/modules/*/vmlinuz /lib/modules/*/Image /usr/lib/modules/*/vmlinuz /usr/lib/modules/*/Image; do
         [ -f "${candidate}" ] || continue
         if kernel_candidate_metadata "${candidate}"; then
             printf '%s%s%s%s%s\n' "${CANDIDATE_VERSION}" "${tab}" "${CANDIDATE_PRIORITY}" "${tab}" "${candidate}"
