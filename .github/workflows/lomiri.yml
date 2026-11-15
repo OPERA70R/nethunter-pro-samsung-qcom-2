@@ -97,21 +97,7 @@ jobs:
             f2fs-tools \
             squashfs-tools-ng
 
-      - name: Enable F2FS kernel support
-        if: ${{ inputs.filesystem == 'f2fs' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! grep -qw f2fs /proc/filesystems; then
-            kernel_pkg="linux-modules-extra-$(uname -r)"
-            if ! apt-cache show "${kernel_pkg}" >/dev/null 2>&1; then
-              echo "${kernel_pkg} is not available on this runner; skipping F2FS module install."
-              exit 0
-            fi
-            sudo apt-get install -y "${kernel_pkg}"
-            sudo modprobe f2fs || echo "F2FS module unavailable on this runner; continuing without it."
-          fi
+    
 
       - name: Compose build arguments
         id: args
