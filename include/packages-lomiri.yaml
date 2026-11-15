@@ -1,0 +1,14 @@
+{{- $architecture := or .architecture "arm64" -}}
+
+architecture: {{ $architecture }}
+
+actions:
+  - action: apt
+    recommends: false
+    description: Install Lomiri desktop packages
+    packages:
+      - lomiri-desktop
+      - firefox-esr
+      - nethunter
+      - hijacker
+      - kalitorify
