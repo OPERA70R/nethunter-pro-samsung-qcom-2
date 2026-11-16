@@ -30,6 +30,7 @@ on:
         options:
           - phosh
           - plasma-mobile
+          - lomiri
       build_mode:
         description: "Build scope"
         required: true
