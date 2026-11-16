@@ -91,7 +91,7 @@ case "${device}" in
       device="wip"
     fi
     family="qcom"
-    SECTSIZE="$(tomlq -r '.bootimg.pagesize' devices/qcom/configs/${device}.toml)"
+    SECTSIZE="$(tomlq -r '.bootimg.pagesize' "devices/qcom/configs/${device}.toml")"
     ARGS="${ARGS} -e MKE2FS_DEVICE_SECTSIZE:${SECTSIZE} -t nonfree:true -t bootonroot:true"
     ;;
   "amd64"|"amd64-free" )
@@ -210,6 +210,7 @@ if [ -n "$sign" ]; then
 
     for ext in ${extensions}; do
         for file in "${image_file}".${ext}; do
+            [ -f "${file}" ] || continue
             sha256sum "${file}" >> "${image_file}.sha256sums"
         done
     done
