@@ -2,6 +2,13 @@
 
 SCRIPT="$0"
 DEVICE="$1"
+SKIP_BOOTIMG="${SKIP_BOOTIMG:-1}"
+
+if [ "${SKIP_BOOTIMG}" = "1" ]; then
+    echo "Skipping boot image generation for '${DEVICE}' (rootfs only)."
+    exit 0
+fi
+
 WORKDIR="$(mktemp -d /tmp/qcom-bootloader.XXXXXX)"
 
 cleanup() {
@@ -9,7 +16,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-CONFIG="$(dirname ${SCRIPT})/configs/${DEVICE}.toml"
+CONFIG="$(dirname "${SCRIPT}")/configs/${DEVICE}.toml"
 if ! [ -f "${CONFIG}" ]; then
     echo "ERROR: No configuration for device type '${DEVICE}'!"
     exit 1
@@ -298,10 +305,6 @@ if [ -z "${KERNEL_IMAGE}" ]; then
     done < "${WORKDIR}/kernel-candidates.txt"
 fi
 if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ] || [ -z "${RAMDISK_IMAGE}" ]; then
-    if [ "${DEVICE}" = "r8q" ]; then
-        echo "ERROR: unable to locate matching kernel and ramdisk artifacts for r8q" >&2
-        exit 1
-    fi
     echo "WARN: unable to locate matching kernel and ramdisk artifacts for ${DEVICE}; skipping boot image generation"
     exit 0
 fi
@@ -311,31 +314,31 @@ if [ "${DEVICE}" = "r8q" ]; then
     GZIP_RAMDISK="${WORKDIR}/ramdisk-${KERNEL_VERSION}.gz"
     if ! ensure_gzip_artifact "${KERNEL_IMAGE}" "${GZIP_KERNEL}" ||
         ! ensure_gzip_artifact "${RAMDISK_IMAGE}" "${GZIP_RAMDISK}"; then
-        echo "ERROR: unable to gzip kernel and ramdisk artifacts for r8q" >&2
-        exit 1
+        echo "WARN: unable to gzip kernel and ramdisk artifacts for ${DEVICE}; skipping boot image generation"
+        exit 0
     fi
     KERNEL_IMAGE="${GZIP_KERNEL}"
     RAMDISK_IMAGE="${GZIP_RAMDISK}"
 fi
 
 # Parse config for generic parameters for the current SoC
-SOC=$(tomlq -r "if .chipset then .chipset else \"${DEVICE}\" end" ${CONFIG})
+SOC=$(tomlq -r "if .chipset then .chipset else \"${DEVICE}\" end" "${CONFIG}")
 MKBOOTIMG_ARGS="$(bootimg_offsets "$(tomlq -r '.bootimg' "${CONFIG}")")"
 
 for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
     # Parse device-specific parameters
-    VENDOR=$(tomlq -r ".device[$i].vendor" ${CONFIG})
-    MODEL=$(tomlq -r ".device[$i].model" ${CONFIG})
-    VARIANT=$(tomlq -r "if .device[$i].variant then .device[$i].variant else \"\" end" ${CONFIG})
-    DEVICE_SOC=$(tomlq -r "if .device[$i].chipset then .device[$i].chipset else \"${SOC}\" end" ${CONFIG})
-    DTB_VENDOR=$(tomlq -r "if .device[$i].dtb_vendor then .device[$i].dtb_vendor else \"${VENDOR}\" end" ${CONFIG})
-    DTB_MODEL=$(tomlq -r "if .device[$i].dtb_model then .device[$i].dtb_model else \"${MODEL}\" end" ${CONFIG})
-    DTB_VARIANT=$(tomlq -r "if .device[$i].dtb_variant then .device[$i].dtb_variant else \"${VARIANT}\" end" ${CONFIG})
-    APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" ${CONFIG})
+    VENDOR=$(tomlq -r ".device[$i].vendor" "${CONFIG}")
+    MODEL=$(tomlq -r ".device[$i].model" "${CONFIG}")
+    VARIANT=$(tomlq -r "if .device[$i].variant then .device[$i].variant else \"\" end" "${CONFIG}")
+    DEVICE_SOC=$(tomlq -r "if .device[$i].chipset then .device[$i].chipset else \"${SOC}\" end" "${CONFIG}")
+    DTB_VENDOR=$(tomlq -r "if .device[$i].dtb_vendor then .device[$i].dtb_vendor else \"${VENDOR}\" end" "${CONFIG}")
+    DTB_MODEL=$(tomlq -r "if .device[$i].dtb_model then .device[$i].dtb_model else \"${MODEL}\" end" "${CONFIG}")
+    DTB_VARIANT=$(tomlq -r "if .device[$i].dtb_variant then .device[$i].dtb_variant else \"${VARIANT}\" end" "${CONFIG}")
+    APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" "${CONFIG}")
     APPEND_DTB_TO_KERNEL=$(tomlq -r "if .device[$i].append_dtb_to_kernel == false then \"false\" else \"true\" end" "${CONFIG}")
-    DTB_MODEL_FALLBACKS=$(tomlq -r "if .device[$i].dtb_model_fallbacks then .device[$i].dtb_model_fallbacks[] else empty end" ${CONFIG})
+    DTB_MODEL_FALLBACKS=$(tomlq -r "if .device[$i].dtb_model_fallbacks then .device[$i].dtb_model_fallbacks[] else empty end" "${CONFIG}")
     # Extract device-specific bootimg parameters in JSON format for processing by `bootimg_offsets()`
-    DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" ${CONFIG})
+    DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" "${CONFIG}")
 
     CMDLINE="mobile.qcomsoc=qcom/${DEVICE_SOC} mobile.vendor=${VENDOR} mobile.model=${MODEL}"
     if [ "${VARIANT}" ]; then
@@ -387,40 +390,24 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
             fi
         done
         if [ -z "${DTB_FILE}" ]; then
-            if [ "${DEVICE}" = "r8q" ]; then
-                echo "ERROR: unable to locate DTB artifact for ${FULLMODEL}; tried ${DTB_NAMES}" >&2
-                exit 1
-            fi
             echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; tried ${DTB_NAMES}; skipping boot image generation"
             continue
         fi
-        BOOTIMG_ARGS="${BOOTIMG_ARGS} --dtb ${DTB_FILE}"
         if [ "${APPEND_DTB_TO_KERNEL}" = "true" ]; then
             KERNEL_DTB="${WORKDIR}/kernel-dtb-${FULLMODEL}"
             cat "${KERNEL_IMAGE}" "${DTB_FILE}" > "${KERNEL_DTB}"
             KERNEL_ARG="${KERNEL_DTB}"
+            BOOTIMG_ARGS="$(printf '%s\n' "${BOOTIMG_ARGS}" | sed 's/--dtb_offset [^ ]*//')"
+        else
+            BOOTIMG_ARGS="${BOOTIMG_ARGS} --dtb ${DTB_FILE}"
         fi
     fi
 
     echo "Creating boot image for ${FULLMODEL}..."
 
     # Create the bootimg as it's the only format recognized by the Android bootloader
-    OUTPUT="./bootimg-${FULLMODEL}"
-    if [ "${DEVICE}" = "r8q" ]; then
-        rm -f "${OUTPUT}"
-        if ! mkbootimg -o "${OUTPUT}" ${BOOTIMG_ARGS} \
-            --kernel "${KERNEL_ARG}" --ramdisk "${RAMDISK_IMAGE}" \
-            --cmdline "mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"; then
-            echo "ERROR: mkbootimg failed for r8q" >&2
-            exit 1
-        fi
-        if [ ! -s "${OUTPUT}" ]; then
-            echo "ERROR: mkbootimg did not produce a boot image for r8q" >&2
-            exit 1
-        fi
-    else
-        mkbootimg -o "${OUTPUT}" ${BOOTIMG_ARGS} \
-            --kernel "${KERNEL_ARG}" --ramdisk "${RAMDISK_IMAGE}" \
-            --cmdline "mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
-    fi
+    mkbootimg -o "/bootimg-${FULLMODEL}" ${BOOTIMG_ARGS} \
+        --kernel "${KERNEL_ARG}" \
+        --ramdisk "${RAMDISK_IMAGE}" \
+        --cmdline "mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
 done
