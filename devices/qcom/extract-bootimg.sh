@@ -8,8 +8,8 @@ IMAGE="$2"
 
 CONFIG="$(dirname "${SCRIPT}")/configs/${DEVICE}.toml"
 if ! [ -f "${CONFIG}" ]; then
-    echo "ERROR: No configuration for device type '${DEVICE}'!"
-    continue
+    echo "WARN: No configuration for device type '${DEVICE}'; skipping boot image extraction"
+    exit 0
 fi
 
 # Extract all supported variants from config
