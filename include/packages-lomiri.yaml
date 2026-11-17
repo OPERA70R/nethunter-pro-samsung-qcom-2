@@ -7,8 +7,44 @@ actions:
     recommends: false
     description: Install Lomiri desktop packages
     packages:
-      - lomiri-desktop
+      # Core Lomiri shell, session & display manager
+      - lightdm
+      - lomiri
+      - lomiri-greeter
+      - lomiri-session
+      - lomiri-system-settings
+      - lomiri-url-dispatcher
+      - lomiri-push-service
+      - lomiri-download-manager
+      - maliit-keyboard
+      - xwayland
+      - repowerd
+      - hfd-service
+      - suru-icon-theme
+
+      # Ayatana status bar indicators
+      - ayatana-indicator-application
+      - ayatana-indicator-bluetooth
+      - ayatana-indicator-datetime
+      - ayatana-indicator-display
+      - ayatana-indicator-keyboard
+      - ayatana-indicator-messages
+      - ayatana-indicator-notifications
+      - ayatana-indicator-power
+      - ayatana-indicator-session
+      - ayatana-indicator-sound
+
+      # Lomiri core apps & browser
+      - lomiri-terminal-app
+      - lomiri-filemanager-app
+      - lomiri-camera-app
+      - lomiri-gallery-app
+      - lomiri-clock-app
+      - lomiri-calculator-app
+      - morph-browser
       - firefox-esr
+
+      # NetHunter packages
       - nethunter
       - hijacker
       - kalitorify
