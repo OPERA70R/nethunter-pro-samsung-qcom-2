@@ -8,4 +8,9 @@ actions:
     recommends: false
     description: Install device-specific packages for Lomiri
     packages:
-      - firefox-esr-mobile-config
+      - address-book-app
+      - dialer-app
+      - messaging-app
+      - biometryd
+      - lomiri-mediaplayer-app
+      - lomiri-music-app
