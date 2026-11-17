@@ -11,12 +11,11 @@ actions:
       - lightdm
       - lomiri
       - lomiri-greeter
-      - lomiri-session
       - lomiri-system-settings
       - lomiri-url-dispatcher
       - lomiri-push-service
       - lomiri-download-manager
-      - maliit-keyboard
+      - lomiri-keyboard
       - xwayland
       - repowerd
       - hfd-service
