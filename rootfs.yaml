@@ -2,7 +2,7 @@
 {{- $username := or .username "kali" -}}
 {{- $password := or .password "1234" -}}
 {{- $hostname := or .hostname "kali" -}}
-{{- $environment := or .environment "phosh" -}}
+{{- $environment := or .environment "lomiri" -}}
 {{- $contrib := or .contrib "true" -}}
 {{- $nonfree := or .nonfree "false" -}}
 {{- $ssh := or .ssh "" -}}
