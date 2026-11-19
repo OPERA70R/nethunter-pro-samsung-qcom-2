@@ -100,6 +100,18 @@ actions:
       - protection-domain-mapper
       - tqftpserv
 
+{{- if eq $device "r8q" }}
+  - action: overlay
+    description: Stage r8q Qualcomm firmware for installation
+    source: overlays/usr/lib
+    destination: /tmp/r8q-firmware
+
+  - action: run
+    chroot: true
+    description: Install r8q Qualcomm firmware in kernel firmware-loader paths
+    script: install-r8q-firmware.sh
+{{- end }}
+
   - action: run
     description: Enable essential qcom services
     chroot: true
