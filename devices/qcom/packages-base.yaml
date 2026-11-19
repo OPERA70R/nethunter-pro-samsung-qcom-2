@@ -53,6 +53,7 @@ actions:
 {{- else }}
       - qcom-support-common
       - openssh-server
+{{- end }}
 
   - action: overlay
     description: Copy additional packages to image
@@ -89,6 +90,15 @@ actions:
     description: Build and install uniLoader from source
     script: install-uniloader-sm8450.sh
 {{- end }}
+
+  - action: apt
+    recommends: false
+    description: Install open-source Qualcomm QRTR userspace services
+    packages:
+      - qrtr-tools
+      - rmtfs
+      - protection-domain-mapper
+      - tqftpserv
 
   - action: run
     description: Enable essential qcom services
