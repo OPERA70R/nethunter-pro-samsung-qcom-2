@@ -30,6 +30,7 @@ actions:
       - iputils-ping
 {{- if ne $device "wip" }}
       - firmware-qcom-soc
+      - firmware-atheros
 {{- if or (eq $device "sm8250") (eq $device "gts8wifi") (eq $device "r8q") }}
       - qcom-support-common
 {{- if or (eq $device "sm8250") (eq $device "r8q") }}
@@ -108,7 +109,7 @@ actions:
 
   - action: run
     chroot: true
-    description: Install r8q Qualcomm firmware in kernel firmware-loader paths
+    description: Install bundled r8q Qualcomm firmware in kernel firmware-loader paths
     script: install-r8q-firmware.sh
 {{- end }}
 

@@ -18,8 +18,8 @@ install_firmware() {
     done
 }
 
-# Adreno 650 and IPA firmware used by the SM8250 platform.
-install_firmware qcom/sm8250 \
+# Adreno 650 and IPA firmware request names used by the Qualcomm drivers.
+install_firmware qcom \
     a650_gmu.bin \
     a650_sqe.fw \
     ipa_fws.b00 \
@@ -35,16 +35,13 @@ install_firmware qcom/sm8250 \
     ipa_uc.elf \
     ipa_uc.mdt
 
-# Qualcomm Bluetooth controller firmware.
+# Qualcomm Bluetooth controller firmware request paths.
 install_firmware qca \
     htbtfw20.tlv \
     htnv20.bin
 
-# ath11k QCA6390 firmware.
-install_firmware ath11k/QCA6390/hw2.0 \
-    qca6390/amss20.bin \
-    qca6390/bdwlan.elf \
-    qca6390/m3.bin \
-    qca6390/regdb.bin
-
+# QCA6390 Wi-Fi firmware is supplied by the distribution's firmware-atheros
+# package. The Android-style amss20/bdwlan files in the local drop are not the
+# ath11k firmware-5.bin and board-2.bin files requested by the upstream driver;
+# do not install them under misleading names.
 rm -rf "$src"
