@@ -11,3 +11,9 @@ actions:
       - gnome-snapshot
       - firefox-esr-mobile-config
       - mobian-phosh-phone
+      - feedbackd
+      - modemmanager
+      - gnome-calls
+      - chatty
+      - gnome-contacts
+      - gnome-clocks
